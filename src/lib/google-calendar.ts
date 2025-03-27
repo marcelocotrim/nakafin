@@ -2,7 +2,7 @@ import { EventWithRelations } from '@/types/event';
 
 const GOOGLE_CALENDAR_API_URL = 'https://www.googleapis.com/calendar/v3/calendars/primary/events';
 
-export async function addEventToGoogleCalendar(event: EventWithRelations, jwtToken: string) {
+export async function addEventToGoogleCalendar(event: EventWithRelations, access_token: string) {
   try {
     const startDate = new Date(event.date);
     const endDate = new Date(startDate);
@@ -32,24 +32,12 @@ export async function addEventToGoogleCalendar(event: EventWithRelations, jwtTok
         : event.location.name,
     };
 
-    // First, get the access token from the JWT
-    const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
+    console.log({
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
+        'Authorization': `Bearer ${access_token}`,
+        'Content-Type': 'application/json',
       },
-      body: new URLSearchParams({
-        grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-        assertion: jwtToken,
-      }),
-    });
-
-    if (!tokenResponse.ok) {
-      throw new Error('Failed to get access token');
-    }
-
-    const { access_token } = await tokenResponse.json();
-
+    })
     // Now use the access token to create the event
     const response = await fetch(GOOGLE_CALENDAR_API_URL, {
       method: 'POST',

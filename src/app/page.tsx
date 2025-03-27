@@ -42,7 +42,7 @@ import {
 import { generateServiceOrder } from '@/lib/utils'
 import { toast } from 'sonner';
 import { addEventToGoogleCalendar } from '@/lib/google-calendar';
-import { GoogleLogin } from '@react-oauth/google';
+import { useGoogleLogin } from '@react-oauth/google';
 
 async function getEvents(): Promise<EventWithRelations[]> {
   const response = await fetch('/api/event');
@@ -57,7 +57,22 @@ export default function Home() {
   const [globalFilter, setGlobalFilter] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<EventWithRelations | null>(null);
   const [eventToAdd, setEventToAdd] = useState<EventWithRelations | null>(null);
-  const [googleToken, setGoogleToken] = useState<string | null>(null);
+
+  const login = useGoogleLogin({
+    scope: 'https://www.googleapis.com/auth/calendar',
+    flow: 'implicit',
+    onSuccess: async (tokenResponse) => {
+      console.log(tokenResponse, eventToAdd)
+      try {
+        await addEventToGoogleCalendar(eventToAdd, tokenResponse.access_token);
+        toast.success('Evento adicionado ao Google Calendar com sucesso!');
+        setEventToAdd(null)
+      } catch (error) {
+        console.error('Error adding to Google Calendar:', error);
+        toast.error('Erro ao adicionar evento ao Google Calendar');
+      }
+    },
+  });
 
   useEffect(() => {
     // Check for stored token on component mount
@@ -66,20 +81,6 @@ export default function Home() {
       setGoogleToken(storedToken);
     }
   }, []);
-
-  const handleAddToGoogleCalendar = async (event: EventWithRelations) => {
-    if (googleToken) {
-      try {
-        await addEventToGoogleCalendar(event, googleToken);
-        toast.success('Evento adicionado ao Google Calendar com sucesso!');
-      } catch (error) {
-        console.error('Error adding to Google Calendar:', error);
-        toast.error('Erro ao adicionar evento ao Google Calendar');
-      }
-    } else {
-      setEventToAdd(event);
-    }
-  };
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['events'],
@@ -274,7 +275,8 @@ export default function Home() {
               </DropdownMenuItem>
               <DropdownMenuItem onClick={(e) => {
                 e.stopPropagation();
-                handleAddToGoogleCalendar(row.original);
+                setEventToAdd(row.original);
+                login();
               }}>
                 Adicionar ao Google Calendar
               </DropdownMenuItem>
@@ -514,40 +516,6 @@ export default function Home() {
                 </div>
               </div>
             )}
-          </DialogContent>
-        </Dialog>
-
-        <Dialog open={!!eventToAdd} onOpenChange={() => setEventToAdd(null)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Adicionar ao Google Calendar</DialogTitle>
-              <DialogDescription>
-                Faça login com sua conta Google para adicionar o evento ao seu calendário.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="flex justify-center py-4">
-              <GoogleLogin
-                onSuccess={async (credentialResponse) => {
-                  try {
-                    if (eventToAdd && credentialResponse.credential) {
-                      await addEventToGoogleCalendar(eventToAdd, credentialResponse.credential);
-                      // Store the token for future use
-                      localStorage.setItem('googleToken', credentialResponse.credential);
-                      setGoogleToken(credentialResponse.credential);
-                      toast.success('Evento adicionado ao Google Calendar com sucesso!');
-                      setEventToAdd(null);
-                    }
-                  } catch (error) {
-                    console.error('Error adding to Google Calendar:', error);
-                    toast.error('Erro ao adicionar evento ao Google Calendar');
-                  }
-                }}
-                onError={() => {
-                  toast.error('Erro ao fazer login com Google');
-                }}
-                useOneTap
-              />
-            </div>
           </DialogContent>
         </Dialog>
       </div>
