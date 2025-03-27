@@ -141,7 +141,6 @@ export default function EventForm() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => null)
-        console.error('Error response:', errorData)
         throw new Error(errorData?.message || "Failed to create event")
       }
 

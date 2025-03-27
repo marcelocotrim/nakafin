@@ -62,11 +62,10 @@ export default function Home() {
     scope: 'https://www.googleapis.com/auth/calendar',
     flow: 'implicit',
     onSuccess: async (tokenResponse) => {
-      console.log(tokenResponse, eventToAdd)
       try {
         await addEventToGoogleCalendar(eventToAdd, tokenResponse.access_token);
         toast.success('Evento adicionado ao Google Calendar com sucesso!');
-        setEventToAdd(null)
+        setEventToAdd()
       } catch (error) {
         console.error('Error adding to Google Calendar:', error);
         toast.error('Erro ao adicionar evento ao Google Calendar');
