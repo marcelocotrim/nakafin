@@ -22,7 +22,7 @@ import {
   useReactTable,
   SortingState,
 } from '@tanstack/react-table';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { ArrowUpDown, MoreHorizontal } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -63,23 +63,15 @@ export default function Home() {
     flow: 'implicit',
     onSuccess: async (tokenResponse) => {
       try {
-        await addEventToGoogleCalendar(eventToAdd, tokenResponse.access_token);
+        await addEventToGoogleCalendar(eventToAdd!, tokenResponse.access_token);
         toast.success('Evento adicionado ao Google Calendar com sucesso!');
-        setEventToAdd()
+        setEventToAdd(null)
       } catch (error) {
         console.error('Error adding to Google Calendar:', error);
         toast.error('Erro ao adicionar evento ao Google Calendar');
       }
     },
   });
-
-  useEffect(() => {
-    // Check for stored token on component mount
-    const storedToken = localStorage.getItem('googleToken');
-    if (storedToken) {
-      setGoogleToken(storedToken);
-    }
-  }, []);
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['events'],
@@ -353,170 +345,170 @@ export default function Home() {
 
   return (
 
-      <div className="min-h-[calc(100vh-4rem)] p-4 pt-20">
-        <div className="w-full">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Eventos</h1>
-            <Input
-              placeholder="Buscar..."
-              value={globalFilter ?? ''}
-              onChange={(event) => setGlobalFilter(String(event.target.value))}
-              className="max-w-sm ml-2"
-            />
-          </div>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      className={header.id === 'actions' ? 'sticky right-0 bg-background z-10' : ''}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                    </TableHead>
-                  ))
-                ))}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() && "selected"}
-                    className="cursor-pointer hover:bg-muted/50"
-                    onClick={() => setSelectedEvent(row.original)}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell
-                        key={cell.id}
-                        className={cell.column.id === 'actions' ? 'sticky right-0 bg-background z-10' : ''}
-                      >
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center">
-                    Nenhum resultado encontrado.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+    <div className="min-h-[calc(100vh-4rem)] p-4 pt-20">
+      <div className="w-full">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Eventos</h1>
+          <Input
+            placeholder="Buscar..."
+            value={globalFilter ?? ''}
+            onChange={(event) => setGlobalFilter(String(event.target.value))}
+            className="max-w-sm ml-2"
+          />
         </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              {table.getHeaderGroups().map((headerGroup) => (
+                headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    className={header.id === 'actions' ? 'sticky right-0 bg-background z-10' : ''}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : flexRender(
+                        header.column.columnDef.header,
+                        header.getContext()
+                      )}
+                  </TableHead>
+                ))
+              ))}
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => setSelectedEvent(row.original)}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell
+                      key={cell.id}
+                      className={cell.column.id === 'actions' ? 'sticky right-0 bg-background z-10' : ''}
+                    >
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={columns.length} className="h-24 text-center">
+                  Nenhum resultado encontrado.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
-        <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Detalhes do Evento</DialogTitle>
-              <DialogDescription>
-                Informações completas sobre o evento
-              </DialogDescription>
-            </DialogHeader>
-            {selectedEvent && (
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Empresa</h3>
-                  <p>{selectedEvent.responsiblePerson.companyName}</p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Responsável</h3>
-                  <p>{selectedEvent.responsiblePerson.name}</p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Telefone</h3>
-                  <p>{selectedEvent.responsiblePerson.phoneNumber}</p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Local</h3>
-                  <p>
-                    {selectedEvent.location.parent
-                      ? `${selectedEvent.location.parent.name} - ${selectedEvent.location.name}`
-                      : selectedEvent.location.name}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Data e Hora</h3>
-                  <p>
-                    {format(new Date(selectedEvent.date), "d 'de' MMMM 'de' yyyy 'às' HH:mm", {
-                      locale: ptBR,
-                    })}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Quantidade de Participantes</h3>
-                  <p>{selectedEvent.participantsQuantity}</p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Preço</h3>
-                  <p>R$ {selectedEvent.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Taxa de Serviço</h3>
-                  <p>{selectedEvent.serviceFee * 100} %</p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Total</h3>
-                  <p>R$ {selectedEvent.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                </div>
-                <div className="space-y-2">
-                  <h3 className="font-semibold">Total Com Serviço</h3>
-                  <p>R$ {selectedEvent.totalWithServiceFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                </div>
-                {selectedEvent.title && (
-                  <div className="space-y-2 col-span-2">
-                    <h3 className="font-semibold">Título</h3>
-                    <p>{selectedEvent.title}</p>
-                  </div>
-                )}
-                {selectedEvent.description && (
-                  <div className="space-y-2 col-span-2">
-                    <h3 className="font-semibold">Observações</h3>
-                    <p>{selectedEvent.description}</p>
-                  </div>
-                )}
+      <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Detalhes do Evento</DialogTitle>
+            <DialogDescription>
+              Informações completas sobre o evento
+            </DialogDescription>
+          </DialogHeader>
+          {selectedEvent && (
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <h3 className="font-semibold">Empresa</h3>
+                <p>{selectedEvent.responsiblePerson.companyName}</p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Responsável</h3>
+                <p>{selectedEvent.responsiblePerson.name}</p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Telefone</h3>
+                <p>{selectedEvent.responsiblePerson.phoneNumber}</p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Local</h3>
+                <p>
+                  {selectedEvent.location.parent
+                    ? `${selectedEvent.location.parent.name} - ${selectedEvent.location.name}`
+                    : selectedEvent.location.name}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Data e Hora</h3>
+                <p>
+                  {format(new Date(selectedEvent.date), "d 'de' MMMM 'de' yyyy 'às' HH:mm", {
+                    locale: ptBR,
+                  })}
+                </p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Quantidade de Participantes</h3>
+                <p>{selectedEvent.participantsQuantity}</p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Preço</h3>
+                <p>R$ {selectedEvent.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Taxa de Serviço</h3>
+                <p>{selectedEvent.serviceFee * 100} %</p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Total</h3>
+                <p>R$ {selectedEvent.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </div>
+              <div className="space-y-2">
+                <h3 className="font-semibold">Total Com Serviço</h3>
+                <p>R$ {selectedEvent.totalWithServiceFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+              </div>
+              {selectedEvent.title && (
                 <div className="space-y-2 col-span-2">
-                  <h3 className="font-semibold">Cardápio</h3>
-                  <div className="space-y-4">
-                    <p className="font-medium">{selectedEvent.menu.title}</p>
-                    {selectedEvent.menu.sections.map((section, index) => (
-                      <div key={index} className="space-y-2">
-                        <h4 className="font-medium">{section.title}</h4>
-                        <ul className="list-disc list-inside space-y-1">
-                          {section.items.map((item, itemIndex) => (
-                            <li key={itemIndex}>
-                              {item.name}
-                              {item.description && <span className="text-muted-foreground"> - {item.description}</span>}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ))}
-                    <div className="grid grid-cols-2 gap-4 mt-4">
-                      <div>
-                        <p className="font-medium">Preço com Álcool</p>
-                        <p>R$ {selectedEvent.menu.priceWithAlcohol.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                      </div>
-                      <div>
-                        <p className="font-medium">Preço sem Álcool</p>
-                        <p>R$ {selectedEvent.menu.priceWithoutAlcohol.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                      </div>
+                  <h3 className="font-semibold">Título</h3>
+                  <p>{selectedEvent.title}</p>
+                </div>
+              )}
+              {selectedEvent.description && (
+                <div className="space-y-2 col-span-2">
+                  <h3 className="font-semibold">Observações</h3>
+                  <p>{selectedEvent.description}</p>
+                </div>
+              )}
+              <div className="space-y-2 col-span-2">
+                <h3 className="font-semibold">Cardápio</h3>
+                <div className="space-y-4">
+                  <p className="font-medium">{selectedEvent.menu.title}</p>
+                  {selectedEvent.menu.sections.map((section, index) => (
+                    <div key={index} className="space-y-2">
+                      <h4 className="font-medium">{section.title}</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {section.items.map((item, itemIndex) => (
+                          <li key={itemIndex}>
+                            {item.name}
+                            {item.description && <span className="text-muted-foreground"> - {item.description}</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ))}
+                  <div className="grid grid-cols-2 gap-4 mt-4">
+                    <div>
+                      <p className="font-medium">Preço com Álcool</p>
+                      <p>R$ {selectedEvent.menu.priceWithAlcohol.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                    </div>
+                    <div>
+                      <p className="font-medium">Preço sem Álcool</p>
+                      <p>R$ {selectedEvent.menu.priceWithoutAlcohol.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
                     </div>
                   </div>
                 </div>
               </div>
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 }
