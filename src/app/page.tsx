@@ -62,115 +62,152 @@ export default function Home() {
 
   const columns: ColumnDef<EventWithRelations>[] = [
     {
-      accessorKey: 'responsiblePerson.companyName',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Empresa
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
-    },
-    {
-      accessorKey: 'price',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Preço
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
-      cell: ({ row }) => {
-        return `R$ ${row.original.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
-      },
-    },
-    {
       accessorKey: 'date',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Data
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Data
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       cell: ({ row }) => {
-        return format(new Date(row.original.date), "d 'de' MMMM 'de' yyyy 'às' HH:mm", { locale: ptBR });
+        return format(new Date(row.original.date), "dd/MM/yyyy HH:mm", { locale: ptBR });
       },
+    },
+    {
+      accessorKey: 'title',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Título
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+    },
+    // {
+    //   accessorKey: 'responsiblePerson.companyName',
+    //   header: ({ column }) => (
+    //     <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+    //       Empresa
+    //       <ArrowUpDown className="ml-2 h-4 w-4" />
+    //     </Button>
+    //   ),
+    // },
+    {
+      accessorKey: 'responsiblePerson.name',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Responsável
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+    },
+    {
+      accessorKey: 'responsiblePerson.phoneNumber',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Telefone
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
     },
     {
       accessorKey: 'location',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Local
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Local
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       cell: ({ row }) => {
         const location = row.original.location;
         return location.parent ? `${location.parent.name} - ${location.name}` : location.name;
       },
     },
+
     {
       accessorKey: 'participantsQuantity',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Participantes
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Participantes
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+    },
+    // {
+    //   accessorKey: 'price',
+    //   header: ({ column }) => (
+    //     <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+    //       Preço
+    //       <ArrowUpDown className="ml-2 h-4 w-4" />
+    //     </Button>
+    //   ),
+    //   cell: ({ row }) => {
+    //     return `R$ ${row.original.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    //   },
+    // },
+    // {
+    //   accessorKey: 'serviceFee',
+    //   header: ({ column }) => (
+    //     <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+    //       Taxa
+    //       <ArrowUpDown className="ml-2 h-4 w-4" />
+    //     </Button>
+    //   ),
+    //   cell: ({ row }) => {
+    //     return `${row.original.serviceFee * 100}%`;
+    //   },
+    // },
+    // {
+    //   accessorKey: 'total',
+    //   header: ({ column }) => (
+    //     <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+    //       Total
+    //       <ArrowUpDown className="ml-2 h-4 w-4" />
+    //     </Button>
+    //   ),
+    //   cell: ({ row }) => {
+    //     return `R$ ${row.original.total.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
+    //   },
+    // },
+    {
+      accessorKey: 'totalWithServiceFee',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Total
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
+      cell: ({ row }) => {
+        return `R$ ${row.original.totalWithServiceFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`;
       },
     },
     {
-      accessorKey: 'responsiblePerson.name',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-          >
-            Responsável
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
+      accessorKey: 'menu.title',
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Cardápio
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
     },
+    // {
+    //   accessorKey: 'description',
+    //   header: ({ column }) => (
+    //     <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+    //       Observações
+    //       <ArrowUpDown className="ml-2 h-4 w-4" />
+    //     </Button>
+    //   ),
+    // },
     {
       accessorKey: 'createdAt',
-      header: ({ column }) => {
-        return (
-          <Button
-            variant="ghost"
-            onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            className="flex items-center justify-start w-full text-left"
-          >
-            Criado em
-            <ArrowUpDown className="ml-2 h-4 w-4" />
-          </Button>
-        );
-      },
+      header: ({ column }) => (
+        <Button variant="ghost" onClick={() => column.toggleSorting(column.getIsSorted() === 'asc')}>
+          Criado em
+          <ArrowUpDown className="ml-2 h-4 w-4" />
+        </Button>
+      ),
       cell: ({ row }) => {
-        return format(new Date(row.original.createdAt), "d 'de' MMMM 'de' yyyy", { locale: ptBR });
+        return format(new Date(row.original.createdAt), "dd/MM/yyyy HH:mm", { locale: ptBR });
       },
     },
     {
@@ -242,12 +279,19 @@ export default function Home() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Título</TableHead>
                 <TableHead>Empresa</TableHead>
-                <TableHead>Preço</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Local</TableHead>
-                <TableHead>Participantes</TableHead>
                 <TableHead>Responsável</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Local</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Participantes</TableHead>
+                <TableHead>Preço</TableHead>
+                <TableHead>Taxa</TableHead>
+                <TableHead>Total</TableHead>
+                <TableHead>Total c/ Taxa</TableHead>
+                <TableHead>Cardápio</TableHead>
+                <TableHead>Observações</TableHead>
                 <TableHead>Criado em</TableHead>
                 <TableHead className="sticky right-0 bg-background z-10"></TableHead>
               </TableRow>
@@ -257,10 +301,17 @@ export default function Home() {
                 <TableRow key={index}>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-24" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-32" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-40" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-36" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-8" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
+                  <TableCell><Skeleton className="h-4 w-24" /></TableCell>
                   <TableCell><Skeleton className="h-4 w-36" /></TableCell>
                 </TableRow>
               ))}
