@@ -1,0 +1,91 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+// model User {
+//   id        String   @id @default(cuid()) @map("_id")
+//   createdAt DateTime @default(now())
+//   updatedAt DateTime @updatedAt
+//   name      String
+//   email     String
+//   password  String
+//   events    Event[]
+// }
+
+model Person {
+  id          String   @id @default(cuid()) @map("_id")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  name        String
+  phoneNumber String
+  companyName String
+  events      Event[]
+}
+
+type Menu {
+  title               String
+  sections            Section[]
+  priceWithAlcohol    Float
+  priceWithoutAlcohol Float
+}
+
+type Section {
+  title String
+  items Item[]
+}
+
+type Item {
+  name        String
+  description String?
+  price       Float?
+}
+
+model Event {
+  id                             String   @id @default(cuid()) @map("_id")
+  createdAt                      DateTime @default(now())
+  updatedAt                      DateTime @updatedAt
+  title                          String?
+  description                    String?
+  price                          Float
+  priceWithServiceFee            Float
+  serviceFee                     Float
+  total                          Float
+  totalWithServiceFee            Float
+  discount                       Float
+  totalWithServiceFeeAndDiscount Float
+  date                           DateTime
+  locationId                     String
+  location                       Location @relation(fields: [locationId], references: [id])
+  participantsQuantity           Int
+  responsiblePerson              Person   @relation(fields: [responsiblePersonId], references: [id])
+  responsiblePersonId            String
+  // customerId           String?
+  // customer             Person? @relation(fields: [customerId], references: [id])
+  menu                           Json
+  // userId               String?
+  // user                 User?    @relation(fields: [userId], references: [id])
+}
+
+model Location {
+  id        String     @id @default(cuid()) @map("_id")
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  name      String
+  parentId  String?
+  parent    Location?  @relation("LocationToLocation", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children  Location[] @relation("LocationToLocation")
+  event     Event[]
+
+  @@index([parentId])
+}

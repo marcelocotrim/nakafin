@@ -1,0 +1,31 @@
+POST http://localhost:3000/api/event
+
+{
+    "companyName": "Evento Teste",
+    "price": 100,
+    "date": "2025-03-26T12:00:00Z",
+}
+
+###
+
+GET http://localhost:3000/api/evento
+
+
+###
+
+GET http://localhost:3000/api/operacao
+
+
+###
+
+POST http://localhost:3000/api/pessoa
+Content-Type: application/json
+
+{
+    "name": "Marcelo Cotrim",
+    "phoneNumber": "+5521994053508"
+}
+
+
+
+
