@@ -179,7 +179,11 @@ export default function Home() {
         return (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="h-8 w-8 p-0">
+              <Button
+                variant="ghost"
+                className="h-8 w-8 p-0"
+                onClick={(e) => e.stopPropagation()}
+              >
                 <span className="sr-only">Abrir menu</span>
                 <MoreHorizontal className="h-4 w-4" />
               </Button>
@@ -205,8 +209,7 @@ export default function Home() {
                 Gerar Ordem
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
-                // TODO: Implement Google Calendar integration
-                console.log('Add to Google Calendar:', row.original.id);
+                alert('Muita calma! Ainda não implementei isso. Já já vou fazer.');
               }}>
                 Adicionar ao Google Calendar
               </DropdownMenuItem>
@@ -246,6 +249,7 @@ export default function Home() {
                 <TableHead>Participantes</TableHead>
                 <TableHead>Responsável</TableHead>
                 <TableHead>Criado em</TableHead>
+                <TableHead className="sticky right-0 bg-background z-10"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -284,7 +288,10 @@ export default function Home() {
             <TableRow>
               {table.getHeaderGroups().map((headerGroup) => (
                 headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
+                  <TableHead
+                    key={header.id}
+                    className={header.id === 'actions' ? 'sticky right-0 bg-background z-10' : ''}
+                  >
                     {header.isPlaceholder
                       ? null
                       : flexRender(
@@ -306,7 +313,10 @@ export default function Home() {
                   onClick={() => setSelectedEvent(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
+                    <TableCell
+                      key={cell.id}
+                      className={cell.column.id === 'actions' ? 'sticky right-0 bg-background z-10' : ''}
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
