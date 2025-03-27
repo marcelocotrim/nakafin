@@ -42,7 +42,7 @@ import {
 import { generateServiceOrder } from '@/lib/utils'
 import { toast } from 'sonner';
 import { addEventToGoogleCalendar } from '@/lib/google-calendar';
-import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
+import { GoogleLogin } from '@react-oauth/google';
 
 async function getEvents(): Promise<EventWithRelations[]> {
   const response = await fetch('/api/event');
@@ -351,7 +351,7 @@ export default function Home() {
   }
 
   return (
-    <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
+
       <div className="min-h-[calc(100vh-4rem)] p-4 pt-20">
         <div className="w-full">
           <div className="flex justify-between items-center mb-6">
@@ -551,6 +551,5 @@ export default function Home() {
           </DialogContent>
         </Dialog>
       </div>
-    </GoogleOAuthProvider>
   );
 }
