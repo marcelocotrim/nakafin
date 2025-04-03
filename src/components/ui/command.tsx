@@ -55,8 +55,11 @@ function CommandDialog({
 
 function CommandInput({
   className,
+  onValueChange,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+  onValueChange?: (value: string) => void
+}) {
   return (
     <div
       data-slot="command-input-wrapper"
@@ -69,6 +72,8 @@ function CommandInput({
           "placeholder:text-muted-foreground flex h-10 w-full rounded-md bg-transparent py-3 text-sm outline-hidden disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
+        value={props.value}
+        onValueChange={onValueChange}
         {...props}
       />
     </div>

@@ -1,8 +1,9 @@
-import { Event as PrismaEvent, Person, Location } from '@prisma/client';
+import { Event as PrismaEvent, Person, Location, User } from '@prisma/client';
 import { Menu } from '@/lib/utils';
 
 export type EventWithRelations = Omit<PrismaEvent, 'menu'> & {
-  responsiblePerson: Person;
+  user: User;
+  contractor: Person;
   location: Location & {
     parent?: Location | null;
   };

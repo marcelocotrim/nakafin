@@ -1,16 +1,31 @@
 import { Elysia } from 'elysia';
+import { cors } from '@elysiajs/cors';
 import createEvent from '@/api/create-event';
 import createPerson from '@/api/create-person';
 import listEvents from '@/api/list-events';
 import listLocations from '@/api/list-locations';
 import listPersons from '@/api/list-persons';
+import getEvent from '@/api/get-event';
+import updateEvent from '@/api/update-event';
+import betterAuth from '@/api/middleware';
 
 const app = new Elysia({ prefix: '/api' })
+.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+)
+.use(betterAuth)
   .use(createEvent)
   .use(createPerson)
   .use(listEvents)
   .use(listLocations)
   .use(listPersons)
+  .use(getEvent)
+  .use(updateEvent)
 
 export type App = typeof app;
 

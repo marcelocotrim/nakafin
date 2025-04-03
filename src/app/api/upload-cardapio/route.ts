@@ -22,7 +22,6 @@ export async function POST(request: Request) {
     const result = await mammoth.extractRawText({ buffer })
     const text = result.value
     const menu = parseMenuContent(text)
-    console.log({ section : menu?.sections?.at(0) })
 
     return NextResponse.json({ menu })
   } catch (error) {

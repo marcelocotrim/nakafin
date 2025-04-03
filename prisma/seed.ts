@@ -1,93 +1,88 @@
 import { PrismaClient } from '@prisma/client'
+import { createHash } from 'crypto'
+// import { Argon2id } from 'oslo/password'
 
 const prisma = new PrismaClient()
 
 async function main() {
-  // Create Ruda as the main location
-  const ruda = await prisma.location.create({
-    data: {
-      name: 'Rudä',
-      parentId: null,
+  // Upsert admin user
+  const userId = crypto.randomUUID().replace(/-/g, '');
+  const hashedPassword = createHash('sha256').update('admin123').digest('hex');
+
+  await prisma.user.upsert({
+    where: { email: 'admin@example.com' },
+    update: {
+      accounts: {
+        updateMany: {
+          where: { providerId: 'credential' },
+          data: {
+            password: hashedPassword,
+          },
+        },
+      },
     },
-  })
-
-  // Create sub-locations for Ruda
-  await prisma.location.createMany({
-    data: [
-      {
-        name: 'Segundo Piso',
-        parentId: ruda.id,
+    create: {
+      id: userId,
+      email: 'admin@example.com',
+      name: 'Admin User',
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      role: 'admin',
+      accounts: {
+        create: {
+          id: crypto.randomUUID(),
+          accountId: userId,
+          providerId: 'credential',
+          password: hashedPassword,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
       },
-      {
-        name: 'Gazebo',
-        parentId: ruda.id,
-      },
-      {
-        name: 'Jardim de Inverno',
-        parentId: ruda.id,
-      },
-    ],
-  })
-
-  // Create Izar as the main location
-  const izar = await prisma.location.create({
-    data: {
-      name: 'Izär',
-      parentId: null,
     },
-  })
+  });
 
-  // Create sub-locations for Izar
-  await prisma.location.createMany({
-    data: [
-      {
-        name: 'Salão',
-        parentId: izar.id,
+  // Helper function to upsert location
+  async function upsertLocation(name: string, parentId: string | null = null) {
+    const existingLocation = await prisma.location.findFirst({
+      where: { name }
+    });
+
+    if (existingLocation) {
+      return existingLocation;
+    }
+
+    return prisma.location.create({
+      data: {
+        name,
+        parentId,
       },
-      {
-        name: 'Céu de Estrelas',
-        parentId: izar.id,
-      },
-    ],
-  })
+    });
+  }
 
-  // Create Maska as the main location
-  const maska = await prisma.location.create({
-    data: {
-      name: 'Mäska',
-      parentId: null,
-    },
-  })
+  // Create main locations and their sub-locations
+  const ruda = await upsertLocation('Rudä');
+  await Promise.all([
+    upsertLocation('Segundo Piso', ruda.id),
+    upsertLocation('Gazebo', ruda.id),
+    upsertLocation('Jardim de Inverno', ruda.id),
+  ]);
 
-  // Create sub-locations for Maska
-  await prisma.location.createMany({
-    data: [
-      {
-        name: 'Salão',
-        parentId: maska.id,
-      },
-      {
-        name: 'Boato',
-        parentId: maska.id,
-      },
-    ],
-  })
+  const izar = await upsertLocation('Izär');
+  await Promise.all([
+    upsertLocation('Salão', izar.id),
+    upsertLocation('Céu de Estrelas', izar.id),
+  ]);
 
-  // Create Braserie Mimolette as a single location
-  await prisma.location.create({
-    data: {
-      name: 'Braserie Mimolette',
-      parentId: null,
-    },
-  })
+  const maska = await upsertLocation('Mäska');
+  await Promise.all([
+    upsertLocation('Salão', maska.id),
+    upsertLocation('Boato', maska.id),
+  ]);
 
-  // Create It as a single location
-  await prisma.location.create({
-    data: {
-      name: 'It',
-      parentId: null,
-    },
-  })
+  // Create standalone locations
+  await upsertLocation('Braserie Mimolette');
+  await upsertLocation('It');
 }
 
 main()

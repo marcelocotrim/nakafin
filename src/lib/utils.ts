@@ -322,18 +322,18 @@ async function generateServiceOrder(templateFile: File, event: EventWithRelation
     const filledDoc = await fillEventForm(templateContent, {
       os,
       evento: event.title || "-",
-      pax: event.participantsQuantity.toString(),
+      pax: event.participantsQuantity?.toString() || "-",
       contratante: event.location.parent?.name || event.location.name,
       data: eventDate,
       horario: eventTime,
       operacao: `Restaurante ${event.location.parent?.name || event.location.name}, ${event.location.name}`,
       solicitacao: event.description || "-",
-      pagamento: `${event.price.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}+serviço= ${event.priceWithServiceFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}. Por pessoa.`,
-      total: `${event.priceWithServiceFee} x ${event.participantsQuantity} = ${event.totalWithServiceFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-      Pagamento mínimo: ${event.totalWithServiceFee.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - ${event.discount * 100}% = ${event.totalWithServiceFeeAndDiscount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
+      pagamento: `${event.price?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}+serviço= ${event.priceWithServiceFee?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}. Por pessoa.`,
+      total: `${event.priceWithServiceFee} x ${event.participantsQuantity} = ${event.totalWithServiceFee?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+      Pagamento mínimo: ${event.totalWithServiceFee?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })} - ${event.discount ? `${event.discount * 100}%` : ''} = ${event.totalWithServiceFeeAndDiscount?.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}.`,
       servico: "-",
       comidas: menuSections,
-      responsavel: event.responsiblePerson.name || "-",
+      responsavel: event.user.name || "-",
     })
 
     // Create a blob and download the file

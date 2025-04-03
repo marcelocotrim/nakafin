@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma"
 
 const app = new Elysia({ prefix: '/person' }).get('/', async ({ query }) => {
   const searchText = query.search as string | undefined;
-  console.log(searchText)
   const persons = await prisma.person.findMany({
     where: searchText ? {
       OR: [

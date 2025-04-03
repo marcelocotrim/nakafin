@@ -11,9 +11,9 @@ export async function addEventToGoogleCalendar(event: EventWithRelations, access
     const eventDetails = {
       summary: event.title || 'Evento Nakafin',
       description: `
-        Empresa: ${event.responsiblePerson.companyName}
-        Responsável: ${event.responsiblePerson.name}
-        Telefone: ${event.responsiblePerson.phoneNumber}
+        Empresa: ${event.contractor.companyName}
+        Responsável: ${event.contractor.name}
+        Telefone: ${event.contractor.phoneNumber}
         Local: ${event.location.parent ? `${event.location.parent.name} - ${event.location.name}` : event.location.name}
         Participantes: ${event.participantsQuantity}
         Cardápio: ${event.menu.title}
@@ -32,12 +32,6 @@ export async function addEventToGoogleCalendar(event: EventWithRelations, access
         : event.location.name,
     };
 
-    console.log({
-      headers: {
-        'Authorization': `Bearer ${access_token}`,
-        'Content-Type': 'application/json',
-      },
-    })
     // Now use the access token to create the event
     const response = await fetch(GOOGLE_CALENDAR_API_URL, {
       method: 'POST',

@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import { Header } from "@/components/Header";
+import { Roboto, Roboto_Mono } from "next/font/google";
 import { Toaster } from "sonner";
 import "./globals.css";
 import { QueryProvider } from "@/app/providers";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+
+const roboto = Roboto({
+  variable: "--font-roboto",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const robotoMono = Roboto_Mono({
+  variable: "--font-roboto-mono",
   subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
   title: "NakaFin",
-  description: "Gerencie seus eventos financeiros",
+  description: "Gerencie seus eventos corporativos",
 };
 
 export default function RootLayout({
@@ -28,15 +28,12 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${roboto.variable} ${robotoMono.variable} antialiased`}
       >
         <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID!}>
           <QueryProvider>
-            <Header />
-            <main>
-              {children}
-            </main>
-            <Toaster />
+            {children}
+            <Toaster position="top-right" />
           </QueryProvider>
         </GoogleOAuthProvider>
       </body>

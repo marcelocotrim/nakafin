@@ -1,7 +1,7 @@
 import Elysia, { t } from "elysia"
 import { prisma } from "@/lib/prisma"
 
-const app = new Elysia({ prefix: '/event' }).post('/', async ({ body }) => {
+const app = new Elysia({ prefix: '/event' }).put('/:id', async ({ params, body }) => {
   const discount = 0.2
   try {
     // For draft events, we can use default values for required fields
@@ -34,7 +34,10 @@ const app = new Elysia({ prefix: '/event' }).post('/', async ({ body }) => {
       contractorId = tempContractor.id;
     }
     
-    const event = await prisma.event.create({
+    const event = await prisma.event.update({
+      where: {
+        id: params.id,
+      },
       data: {
         title: body.title,
         description: body.description,
@@ -57,7 +60,7 @@ const app = new Elysia({ prefix: '/event' }).post('/', async ({ body }) => {
     return event
   } catch (error) {
     console.error(error)
-    return { error: 'Failed to create event' }
+    return { error: 'Failed to update event' }
   }
 }, {
     body: t.Object({
@@ -80,10 +83,10 @@ const app = new Elysia({ prefix: '/event' }).post('/', async ({ body }) => {
         priceWithAlcohol: t.Number(),
         priceWithoutAlcohol: t.Number(),
       })),
-      status: t.Optional(t.Union([t.Literal('DRAFT'), t.Literal('PUBLISHED')])),
+      status: t.Optional(t.Union([t.Literal('DRAFT'), t.Literal('PUBLISHED'), t.Literal('CANCELLED')])),
       userId: t.String(),
     }),
   }
 )
 
-export default app
+export default app 
