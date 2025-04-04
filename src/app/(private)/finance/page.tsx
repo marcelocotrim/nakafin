@@ -238,18 +238,18 @@ export default function FinancePage() {
           </BreadcrumbList>
         </Breadcrumb>
 
-        <h1 className="text-2xl font-semibold tracking-tight">Relatório Financeiro</h1>
+        <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Relatório Financeiro</h1>
       </div>
 
       <div className="space-y-12">
         {/* Filters Card */}
         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
-          <div className="p-6">
-            <h3 className="font-medium text-lg mb-4">Filtros</h3>
+          <div className="p-4 md:p-6">
+            <h3 className="font-medium text-base md:text-lg mb-4">Filtros</h3>
             <div className="flex flex-col gap-6">
-              <div className="flex items-center gap-4">
-                <div className="space-y-2 w-[180px]">
-                  <label className="text-sm font-medium">Mês</label>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="space-y-2 w-full sm:w-[180px]">
+                  <label className="text-xs md:text-sm font-medium">Mês</label>
                   <Select
                     value={selectedMonth}
                     onValueChange={setSelectedMonth}
@@ -267,8 +267,8 @@ export default function FinancePage() {
                   </Select>
                 </div>
 
-                <div className="space-y-2 w-[120px]">
-                  <label className="text-sm font-medium">Ano</label>
+                <div className="space-y-2 w-full sm:w-[120px]">
+                  <label className="text-xs md:text-sm font-medium">Ano</label>
                   <Select
                     value={selectedYear}
                     onValueChange={setSelectedYear}
@@ -292,7 +292,7 @@ export default function FinancePage() {
                   onClick={handleExportToExcel}
                   disabled={isLoadingEvents || events.length === 0}
                   variant="outline"
-                  className="w-[200px]"
+                  className="w-full sm:w-[200px] text-xs md:text-sm"
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Exportar XLSX
@@ -304,16 +304,16 @@ export default function FinancePage() {
 
         {/* Summary Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 py-4">
-          <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+          <div className="rounded-lg border bg-card p-4 md:p-6 text-card-foreground shadow-sm">
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Total de Pessoas</span>
-              <span className="text-2xl font-bold">{totals.people}</span>
+              <span className="text-xs md:text-sm font-medium text-muted-foreground">Total de Pessoas</span>
+              <span className="text-lg md:text-2xl font-bold">{totals.people}</span>
             </div>
           </div>
-          <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+          <div className="rounded-lg border bg-card p-4 md:p-6 text-card-foreground shadow-sm">
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Receita Total</span>
-              <span className="text-2xl font-bold">
+              <span className="text-xs md:text-sm font-medium text-muted-foreground">Receita Total</span>
+              <span className="text-lg md:text-2xl font-bold">
                 {totals.revenue.toLocaleString('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
@@ -321,10 +321,10 @@ export default function FinancePage() {
               </span>
             </div>
           </div>
-          <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+          <div className="rounded-lg border bg-card p-4 md:p-6 text-card-foreground shadow-sm">
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Total de Serviço</span>
-              <span className="text-2xl font-bold">
+              <span className="text-xs md:text-sm font-medium text-muted-foreground">Total de Serviço</span>
+              <span className="text-lg md:text-2xl font-bold">
                 {totals.service.toLocaleString('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
@@ -332,10 +332,10 @@ export default function FinancePage() {
               </span>
             </div>
           </div>
-          <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
+          <div className="rounded-lg border bg-card p-4 md:p-6 text-card-foreground shadow-sm">
             <div className="flex flex-col gap-1">
-              <span className="text-sm font-medium text-muted-foreground">Receita Líquida</span>
-              <span className="text-2xl font-bold">
+              <span className="text-xs md:text-sm font-medium text-muted-foreground">Receita Líquida</span>
+              <span className="text-lg md:text-2xl font-bold">
                 {totals.revenueMinusService.toLocaleString('pt-BR', {
                   style: 'currency',
                   currency: 'BRL',
