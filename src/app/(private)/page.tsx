@@ -254,34 +254,8 @@ function Home() {
                     dataKey="events"
                     stroke="rgb(34 197 94)"
                     strokeWidth={2}
-                    dot={(props: { cx?: number; cy?: number; payload?: { events: number } }) => {
-                      const value = props.payload?.events;
-                      if (value === 0) return <></>;
-                      return (
-                        <circle
-                          cx={props.cx}
-                          cy={props.cy}
-                          r={4}
-                          fill="white"
-                          stroke="black"
-                          strokeWidth={2}
-                        />
-                      );
-                    }}
-                    activeDot={(props: { cx?: number; cy?: number; payload?: { events: number } }) => {
-                      const value = props.payload?.events;
-                      if (value === 0) return <></>;
-                      return (
-                        <circle
-                          cx={props.cx}
-                          cy={props.cy}
-                          r={5}
-                          fill="white"
-                          stroke="black"
-                          strokeWidth={2}
-                        />
-                      );
-                    }}
+                    dot={false}
+                    activeDot={false}
                     connectNulls
                   />
                 </LineChart>

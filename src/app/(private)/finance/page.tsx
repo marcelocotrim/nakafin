@@ -1,20 +1,19 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { format } from 'date-fns'
-import { Calendar as CalendarIcon, Check, ChevronsUpDown, Home, Download } from 'lucide-react'
-import { ptBR } from 'date-fns/locale'
-import { useQuery } from '@tanstack/react-query'
+import { Home, Download } from 'lucide-react'
 import * as XLSX from 'xlsx'
+import { ptBR } from 'date-fns/locale'
 
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   Table,
   TableBody,
@@ -24,13 +23,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from '@/components/ui/command'
-import {
   Breadcrumb,
   BreadcrumbItem,
   BreadcrumbLink,
@@ -38,18 +30,6 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-
-interface Person {
-  id: string
-  name: string
-}
 
 interface Event {
   id: string
@@ -57,6 +37,7 @@ interface Event {
   contractor: {
     id: string
     name: string
+    companyName: string
   }
   location: {
     id: string
@@ -67,130 +48,179 @@ interface Event {
     } | null
   }
   price: number
-  pax: number
+  participantsQuantity: number
+  total: number
+  totalWithServiceFee: number
 }
 
-interface Location {
-  id: string
-  name: string
-  children?: Location[]
-}
-
-const fetchEvents = async (filters: {
-  startDate?: Date
-  endDate?: Date
-  contractorId?: string
-  locationId?: string
-}) => {
-  const searchParams = new URLSearchParams()
-
-  searchParams.append('status', 'PUBLISHED')
-
-  if (filters.startDate) {
-    searchParams.append('startDate', filters.startDate.toISOString())
-  }
-  if (filters.endDate) {
-    searchParams.append('endDate', filters.endDate.toISOString())
-  }
-  if (filters.contractorId) {
-    searchParams.append('contractorId', filters.contractorId)
-  }
-  if (filters.locationId) {
-    searchParams.append('locationId', filters.locationId)
-  }
-
-  const response = await fetch(`/api/event?${searchParams.toString()}`)
-  if (!response.ok) throw new Error('Failed to fetch events')
-  return response.json()
-}
+const MONTHS = [
+  { value: '0', label: 'Janeiro' },
+  { value: '1', label: 'Fevereiro' },
+  { value: '2', label: 'Março' },
+  { value: '3', label: 'Abril' },
+  { value: '4', label: 'Maio' },
+  { value: '5', label: 'Junho' },
+  { value: '6', label: 'Julho' },
+  { value: '7', label: 'Agosto' },
+  { value: '8', label: 'Setembro' },
+  { value: '9', label: 'Outubro' },
+  { value: '10', label: 'Novembro' },
+  { value: '11', label: 'Dezembro' },
+]
 
 export default function FinancePage() {
-  const [startDate, setStartDate] = useState<Date | undefined>(
-    new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-  )
-  const [endDate, setEndDate] = useState<Date | undefined>()
-  const [selectedContractor, setSelectedContractor] = useState<string>()
-  const [selectedLocation, setSelectedLocation] = useState<string>()
-  const [contractors, setContractors] = useState<Person[]>([])
-  const [open, setOpen] = useState(false)
-  const [loading, setLoading] = useState(false)
+  const currentDate = new Date()
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentDate.getMonth().toString())
+  const [selectedYear, setSelectedYear] = useState<string>(currentDate.getFullYear().toString())
+  const [events, setEvents] = useState<Event[]>([])
+  const [isLoadingEvents, setIsLoadingEvents] = useState(false)
 
-  const { data: locationsList = [] } = useQuery<Location[]>({
-    queryKey: ['locations'],
-    queryFn: async () => {
-      const response = await fetch('/api/location')
-      if (!response.ok) throw new Error('Failed to fetch locations')
-      return response.json()
-    },
-  })
-
-  const { data: events = [], isLoading: isLoadingEvents, refetch } = useQuery<Event[]>({
-    queryKey: ['events', { startDate, endDate, selectedContractor, selectedLocation }],
-    queryFn: () => fetchEvents({
-      startDate,
-      endDate,
-      contractorId: selectedContractor,
-      locationId: selectedLocation
-    }),
-    enabled: false,
-  })
-
-  const handleSearch = async (value: string) => {
-    if (!value) {
-      setContractors([])
-      return
-    }
-
-    setLoading(true)
+  const fetchEvents = async () => {
+    setIsLoadingEvents(true)
     try {
-      const response = await fetch(`/api/person/list?search=${value}`)
-      if (!response.ok) throw new Error('Failed to fetch contractors')
+      const startDate = new Date(parseInt(selectedYear), parseInt(selectedMonth), 1)
+      const endDate = new Date(parseInt(selectedYear), parseInt(selectedMonth) + 1, 0)
+
+      const searchParams = new URLSearchParams()
+      searchParams.append('status', 'PUBLISHED')
+      searchParams.append('startDate', startDate.toISOString())
+      searchParams.append('endDate', endDate.toISOString())
+
+      const response = await fetch(`/api/event?${searchParams.toString()}`)
+      if (!response.ok) throw new Error('Failed to fetch events')
       const data = await response.json()
-      setContractors(data)
+      setEvents(data)
     } catch (error) {
-      console.error('Error fetching contractors:', error)
+      console.error('Error fetching events:', error)
     } finally {
-      setLoading(false)
+      setIsLoadingEvents(false)
     }
   }
 
+  useEffect(() => {
+    fetchEvents()
+  }, [selectedMonth, selectedYear])
+
   const totals = {
-    people: events.reduce((acc: number, event: Event) => acc + event.pax, 0),
-    revenue: events.reduce((acc: number, event: Event) => acc + (event.price * event.pax), 0),
-    service: events.reduce((acc: number, event: Event) => acc + (event.price * event.pax * 0.1), 0),
-    revenueMinusService: events.reduce((acc: number, event: Event) => {
-      const total = event.price * event.pax
-      return acc + (total - (total * 0.1))
-    }, 0),
+    people: events.reduce((acc: number, event: Event) => acc + event.participantsQuantity, 0),
+    revenue: events.reduce((acc: number, event: Event) => acc + event.totalWithServiceFee, 0),
+    service: events.reduce((acc: number, event: Event) => acc + (event.totalWithServiceFee - event.total), 0),
+    revenueMinusService: events.reduce((acc: number, event: Event) => acc + event.total, 0),
   }
 
   const handleExportToExcel = () => {
     if (!events.length) return
 
-    const exportData = events.map(event => {
-      const totalValue = event.price * event.pax
-      const serviceValue = totalValue * 0.1
-      const discountedValue = totalValue - serviceValue
+    // Group events by location
+    const eventsByLocation = events.reduce((acc, event) => {
+      const locationKey = event.location.parent
+        ? event.location.parent.name
+        : event.location.name
 
-      return {
-        'Data': format(new Date(event.date), 'dd/MM/yyyy'),
-        'Contratante': event.contractor.name,
-        'Empresa': event.location.parent
-          ? `${event.location.parent.name} - ${event.location.name}`
-          : event.location.name,
-        'Preço': event.price,
-        'Pax': event.pax,
-        'Valor Total': totalValue,
-        'Serviço': serviceValue,
-        'Valor Descontado': discountedValue
+      if (!acc[locationKey]) {
+        acc[locationKey] = []
       }
+      acc[locationKey].push(event)
+      return acc
+    }, {} as Record<string, Event[]>)
+
+    const wb = XLSX.utils.book_new()
+
+    // Create a sheet for each location
+    Object.entries(eventsByLocation).forEach(([locationName, locationEvents]) => {
+      type ExcelRow = {
+        'DATA': string
+        'CONTRATANTE': string
+        'EMPRESA': string
+        'PREÇO': number | string
+        'PAX': number | string
+        'VALOR TOTAL': number | string
+        'SERVIÇO': number | string
+        'VALOR DESCONTADO': number | string
+      }
+
+      const data: ExcelRow[] = locationEvents.map(event => ({
+        'DATA': format(new Date(event.date), 'dd-MMM', { locale: ptBR }).toUpperCase(),
+        'CONTRATANTE': event.contractor.name,
+        'EMPRESA': event.contractor.companyName,
+        'PREÇO': event.price,
+        'PAX': event.participantsQuantity,
+        'VALOR TOTAL': event.totalWithServiceFee,
+        'SERVIÇO': event.totalWithServiceFee - event.total,
+        'VALOR DESCONTADO': event.total,
+      }))
+
+      // Add empty rows to match the template
+      while (data.length < 15) {
+        data.push({
+          'DATA': '',
+          'CONTRATANTE': '',
+          'EMPRESA': '',
+          'PREÇO': '',
+          'PAX': '',
+          'VALOR TOTAL': 0,
+          'SERVIÇO': 0,
+          'VALOR DESCONTADO': 0,
+        })
+      }
+
+      // Calculate totals
+      const totals = {
+        pax: locationEvents.reduce((sum, event) => sum + event.participantsQuantity, 0),
+        total: locationEvents.reduce((sum, event) => sum + event.totalWithServiceFee, 0),
+        service: locationEvents.reduce((sum, event) => sum + (event.totalWithServiceFee - event.total), 0),
+        discounted: locationEvents.reduce((sum, event) => sum + event.total, 0),
+      }
+
+      // Add totals row
+      data.push({
+        'DATA': 'TOTAIS',
+        'CONTRATANTE': '',
+        'EMPRESA': '',
+        'PREÇO': '',
+        'PAX': totals.pax,
+        'VALOR TOTAL': totals.total,
+        'SERVIÇO': totals.service,
+        'VALOR DESCONTADO': totals.discounted,
+      })
+
+      // Add labels row
+      data.push({
+        'DATA': '',
+        'CONTRATANTE': '',
+        'EMPRESA': '',
+        'PREÇO': '',
+        'PAX': 'PESSOAS',
+        'VALOR TOTAL': 'RECEITA',
+        'SERVIÇO': 'SERVIÇO',
+        'VALOR DESCONTADO': 'RECEITA - SERVIÇO',
+      })
+
+      const ws = XLSX.utils.json_to_sheet(data, { skipHeader: false })
+
+      // Set column widths
+      const colWidths = [
+        { wch: 10 },  // DATA
+        { wch: 30 },  // CONTRATANTE
+        { wch: 30 },  // EMPRESA
+        { wch: 12 },  // PREÇO
+        { wch: 8 },   // PAX
+        { wch: 15 },  // VALOR TOTAL
+        { wch: 15 },  // SERVIÇO
+        { wch: 20 },  // VALOR DESCONTADO
+      ]
+      ws['!cols'] = colWidths
+
+      // Add the worksheet to the workbook
+      XLSX.utils.book_append_sheet(wb, ws, locationName)
     })
 
-    const ws = XLSX.utils.json_to_sheet(exportData)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Relatório Financeiro')
-    XLSX.writeFile(wb, `relatorio-financeiro-${format(new Date(), 'dd-MM-yyyy')}.xlsx`)
+    // Save the workbook
+    XLSX.writeFile(wb, `relatorio-financeiro-${format(new Date(), 'MM-yyyy')}.xlsx`)
   }
+
+  // Generate years array (current year and 2 years back)
+  const years = Array.from({ length: 3 }, (_, i) => (currentDate.getFullYear() - i).toString())
 
   return (
     <div className="container mx-auto p-4">
@@ -217,132 +247,39 @@ export default function FinancePage() {
           <div className="p-6">
             <h3 className="font-medium text-lg mb-4">Filtros</h3>
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Data Inicial</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !startDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? (
-                          format(startDate, 'dd/MM/yyyy')
-                        ) : (
-                          <span>Selecione uma data</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={startDate}
-                        onSelect={setStartDate}
-                        initialFocus
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Data Final</label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant={'outline'}
-                        className={cn(
-                          'w-full justify-start text-left font-normal',
-                          !endDate && 'text-muted-foreground'
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? (
-                          format(endDate, 'dd/MM/yyyy')
-                        ) : (
-                          <span>Selecione uma data</span>
-                        )}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={endDate}
-                        onSelect={setEndDate}
-                        initialFocus
-                        locale={ptBR}
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Contratante</label>
-                  <Popover open={open} onOpenChange={setOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={open}
-                        className="w-full justify-between"
-                      >
-                        {selectedContractor
-                          ? contractors.find((c) => c.id === selectedContractor)?.name
-                          : "Selecione um contratante"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[240px] p-0">
-                      <Command>
-                        <CommandInput
-                          placeholder="Buscar contratante..."
-                          onValueChange={handleSearch}
-                        />
-                        <CommandEmpty>
-                          {loading ? 'Carregando...' : 'Nenhum contratante encontrado'}
-                        </CommandEmpty>
-                        <CommandGroup>
-                          {contractors.map((contractor) => (
-                            <CommandItem
-                              key={contractor.id}
-                              value={contractor.id}
-                              onSelect={(value) => {
-                                setSelectedContractor(value === selectedContractor ? undefined : value)
-                                setOpen(false)
-                              }}
-                            >
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  selectedContractor === contractor.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {contractor.name}
-                            </CommandItem>
-                          ))}
-                        </CommandGroup>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Restaurante</label>
+              <div className="flex items-center gap-4">
+                <div className="space-y-2 w-[180px]">
+                  <label className="text-sm font-medium">Mês</label>
                   <Select
-                    value={selectedLocation}
-                    onValueChange={(value) => setSelectedLocation(value)}
+                    value={selectedMonth}
+                    onValueChange={setSelectedMonth}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Selecione um restaurante" />
+                      <SelectValue placeholder="Selecione um mês" />
                     </SelectTrigger>
                     <SelectContent>
-                      {locationsList.map((location) => (
-                        <SelectItem key={location.id} value={location.id}>
-                          {location.name}
+                      {MONTHS.map((month) => (
+                        <SelectItem key={month.value} value={month.value}>
+                          {month.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2 w-[120px]">
+                  <label className="text-sm font-medium">Ano</label>
+                  <Select
+                    value={selectedYear}
+                    onValueChange={setSelectedYear}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Selecione um ano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {years.map((year) => (
+                        <SelectItem key={year} value={year}>
+                          {year}
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -350,7 +287,7 @@ export default function FinancePage() {
                 </div>
               </div>
 
-              <div className="flex justify-end gap-4">
+              <div className="flex justify-end">
                 <Button
                   onClick={handleExportToExcel}
                   disabled={isLoadingEvents || events.length === 0}
@@ -359,13 +296,6 @@ export default function FinancePage() {
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Exportar XLSX
-                </Button>
-                <Button
-                  onClick={() => refetch()}
-                  disabled={isLoadingEvents}
-                  className="w-[200px]"
-                >
-                  {isLoadingEvents ? 'Buscando...' : 'Buscar'}
                 </Button>
               </div>
             </div>
@@ -420,14 +350,14 @@ export default function FinancePage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>DATA</TableHead>
-                <TableHead>CONTRATANTE</TableHead>
-                <TableHead>EMPRESA</TableHead>
-                <TableHead className="text-right">PREÇO</TableHead>
-                <TableHead className="text-right">PAX</TableHead>
-                <TableHead className="text-right">VALOR TOTAL</TableHead>
-                <TableHead className="text-right">SERVIÇO</TableHead>
-                <TableHead className="text-right">VALOR DESCONTADO</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead>Contratante</TableHead>
+                <TableHead>Empresa</TableHead>
+                <TableHead className="text-right">Preço</TableHead>
+                <TableHead className="text-right">Participantes</TableHead>
+                <TableHead className="text-right">Valor Total</TableHead>
+                <TableHead className="text-right">Serviço</TableHead>
+                <TableHead className="text-right">Valor Descontado</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -449,28 +379,22 @@ export default function FinancePage() {
                 </TableRow>
               ) : (
                 events.map((event) => {
-                  const totalValue = event.price * event.pax
-                  const serviceValue = totalValue * 0.1
-                  const discountedValue = totalValue - serviceValue
+                  const serviceValue = event.totalWithServiceFee - event.total
 
                   return (
                     <TableRow key={event.id}>
                       <TableCell>{format(new Date(event.date), 'dd/MM/yyyy')}</TableCell>
                       <TableCell>{event.contractor.name}</TableCell>
-                      <TableCell>
-                        {event.location.parent
-                          ? `${event.location.parent.name} - ${event.location.name}`
-                          : event.location.name}
-                      </TableCell>
+                      <TableCell>{event.contractor.companyName}</TableCell>
                       <TableCell className="text-right">
                         {event.price.toLocaleString('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
                         })}
                       </TableCell>
-                      <TableCell className="text-right">{event.pax}</TableCell>
+                      <TableCell className="text-right">{event.participantsQuantity}</TableCell>
                       <TableCell className="text-right">
-                        {totalValue.toLocaleString('pt-BR', {
+                        {event.totalWithServiceFee.toLocaleString('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
                         })}
@@ -482,7 +406,7 @@ export default function FinancePage() {
                         })}
                       </TableCell>
                       <TableCell className="text-right">
-                        {discountedValue.toLocaleString('pt-BR', {
+                        {event.total.toLocaleString('pt-BR', {
                           style: 'currency',
                           currency: 'BRL',
                         })}
