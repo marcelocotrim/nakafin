@@ -28,7 +28,7 @@ import { useEffect, useState } from "react";
 import { useSession, admin } from "@/lib/auth-client";
 import { toast } from "sonner";
 import { Menu } from "@/lib/utils"
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { User } from "@prisma/client";
 import { Select, SelectItem } from "@/components/ui/select";
@@ -123,6 +123,7 @@ interface EventFormProps {
 const EventForm = ({ onUpload, event }: EventFormProps) => {
   const { data: session } = useSession()
   const router = useRouter()
+  const queryClient = useQueryClient()
   const [userOpen, setUserOpen] = useState(false)
   const [userSearch, setUserSearch] = useState('')
   const [menu, setMenu] = useState<Menu | null>(event?.menu || null)
@@ -164,13 +165,14 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
       description: event?.description || "",
       price: event?.price || 0,
       date: event?.date ? new Date(event.date) : undefined,
-      operationId: event?.location?.parent?.id || "",
+      operationId: event?.location?.parent?.id || event?.location?.id || "",
       locationId: event?.location?.id || "",
       participantsQuantity: event?.participantsQuantity || 1,
       contractorId: event?.contractor?.id || "",
       contractorName: event?.contractor?.name || "",
       userId: event?.user?.id || session?.user?.id || "",
       status: (event?.status as "DRAFT" | "PUBLISHED" | "CANCELLED") || "DRAFT",
+      menu: event?.menu || undefined,
     },
   })
 
@@ -196,7 +198,6 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
       return response.json()
     },
     onSuccess: () => {
-      toast.success("Evento criado com sucesso!")
       router.push("/events")
     },
     onError: (error) => {
@@ -215,15 +216,21 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
         body: JSON.stringify(values),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null)
-        throw new Error(errorData?.message || "Failed to update event")
+        throw new Error(data.error || "Failed to update event")
       }
 
-      return response.json()
+      return data
     },
-    onSuccess: () => {
-      toast.success("Evento atualizado com sucesso!")
+    onSuccess: (data) => {
+      toast.success(data.status === 'DRAFT' ? 'Evento salvo como rascunho' : 'Evento publicado com sucesso!');
+
+      // Invalidate relevant query caches
+      queryClient.invalidateQueries({ queryKey: ['event', event?.id] });
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+
       router.push("/events")
     },
     onError: (error) => {
@@ -233,28 +240,20 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
   })
 
   const handleSubmit = async (data: FormValues) => {
-    try {
-      if (event) {
-        const result = await updateEventMutation.mutateAsync(data);
-        if (result) {
-          toast.success(data.status === 'DRAFT' ? 'Evento salvo como rascunho' : 'Evento publicado com sucesso!');
-          router.push('/events');
-        }
-      } else {
-        const result = await createEventMutation.mutateAsync(data);
-        if (result) {
-          toast.success(data.status === 'DRAFT' ? 'Evento salvo como rascunho' : 'Evento publicado com sucesso!');
-          router.push('/events');
-        }
-      }
-    } catch (error) {
-      console.error('Error saving event:', error);
-      toast.error(error instanceof Error ? error.message : 'Erro ao salvar evento');
+    if (event) {
+      await updateEventMutation.mutateAsync(data);
+    } else {
+      await createEventMutation.mutateAsync(data);
     }
   };
 
   const handleDraftSubmit = async () => {
     form.setValue('status', 'DRAFT');
+
+    // Set userId to the logged-in user's ID if not already set
+    if (!form.getValues('userId') && session?.user?.id) {
+      form.setValue('userId', session.user.id);
+    }
 
     // Trigger validation for required fields in draft mode
     const isValid = await form.trigger(['contractorId', 'date', 'operationId']);
@@ -267,14 +266,21 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
     const formValues = form.getValues();
     const data = {
       ...formValues,
-      menu: menu || undefined
+      menu: menu || undefined,
+      locationId: formValues.locationId || formValues.operationId
     } as FormValues;
 
     await handleSubmit(data);
   };
 
   const handlePublishSubmit = async () => {
+    console.log('handlePublishSubmit', form.getValues())
     form.setValue('status', 'PUBLISHED');
+
+    // Set userId to the logged-in user's ID if not already set
+    if (!form.getValues('userId') && session?.user?.id) {
+      form.setValue('userId', session.user.id);
+    }
 
     // Check if menu is required for published events
     if (!menu) {
@@ -284,6 +290,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
 
     // Trigger validation for all required fields in publish mode
     const isValid = await form.trigger();
+    console.log(isValid)
     if (!isValid) {
       return;
     }
@@ -292,7 +299,8 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
     const formValues = form.getValues();
     const data = {
       ...formValues,
-      menu
+      menu,
+      locationId: formValues.locationId || formValues.operationId
     } as FormValues;
 
     await handleSubmit(data);
@@ -323,6 +331,10 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
 
       setMenu(result.menu)
       onUpload(result.menu)
+
+      // Set the menu value in the form
+      form.setValue('menu', result.menu, { shouldValidate: true });
+
       toast.success('Cardápio processado com sucesso!')
     } catch (error) {
       console.error('Error uploading file:', error)

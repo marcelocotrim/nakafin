@@ -12,6 +12,15 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { BarChart, Bar, ResponsiveContainer, YAxis, Tooltip, LineChart, Line } from 'recharts';
 import { cn } from '@/lib/utils';
+import { Home as HomeIcon, DollarSign, Calendar as CalendarIcon, FileText, TrendingUp, TrendingDown } from 'lucide-react';
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 async function getEvents(): Promise<EventWithRelations[]> {
   const response = await fetch('/api/event');
@@ -37,21 +46,21 @@ function Home() {
     const eventDate = new Date(event.date);
     return eventDate >= startOfDay(selectedDate) &&
       eventDate <= endOfDay(selectedDate) &&
-      event.status === 'PUBLISHED';
+      event.status === 'CONFIRMED';
   }) || [];
 
   const currentMonthEvents = events?.filter(event => {
     const eventDate = new Date(event.date);
     return eventDate >= startOfMonth(today) &&
       eventDate <= endOfMonth(today) &&
-      event.status === 'PUBLISHED';
+      event.status === 'CONFIRMED';
   }) || [];
 
   const lastMonthEvents = events?.filter(event => {
     const eventDate = new Date(event.date);
     return eventDate >= startOfMonth(lastMonth) &&
       eventDate <= endOfMonth(lastMonth) &&
-      event.status === 'PUBLISHED';
+      event.status === 'CONFIRMED';
   }) || [];
 
   const eventsChange = lastMonthEvents.length ? ((currentMonthEvents.length - lastMonthEvents.length) / lastMonthEvents.length) * 100 : 0;
@@ -95,9 +104,9 @@ function Home() {
     };
   });
 
-  // Create a Set of dates that have published events
+  // Create a Set of dates that have confirmed events
   const eventDates = new Set(
-    events?.filter(event => event.status === 'PUBLISHED')
+    events?.filter(event => event.status === 'CONFIRMED')
       .map(event => format(new Date(event.date), 'yyyy-MM-dd')) || []
   );
 
@@ -157,10 +166,36 @@ function Home() {
 
   return (
     <div className="p-6 space-y-6">
+      <div className="flex flex-col gap-4 mb-6">
+        <Breadcrumb>
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink href="/">
+                <HomeIcon className="h-4 w-4" />
+                <span className="sr-only">Home</span>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbPage>Dashboard</BreadcrumbPage>
+          </BreadcrumbList>
+        </Breadcrumb>
+
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <h1 className="text-xl md:text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <CalendarIcon className="h-4 w-4" />
+            <span>{format(new Date(), "MMMM 'de' yyyy", { locale: ptBR })}</span>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-col lg:flex-row gap-4">
         <Card className="w-full flex-1">
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Receita do Mês</CardTitle>
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Receita do Mês</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
@@ -168,9 +203,10 @@ function Home() {
                 R$ {currentMonthRevenue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </div>
               <div className={cn(
-                "text-sm",
+                "text-sm flex items-center gap-1",
                 revenueChange >= 0 ? "text-green-500" : "text-red-500"
               )}>
+                {revenueChange >= 0 ? <TrendingUp className="h-4 w-4" /> : <TrendingDown className="h-4 w-4" />}
                 {revenueChange >= 0 ? "+" : ""}{revenueChange.toFixed(1)}% em relação ao mês anterior
               </div>
             </div>
@@ -210,7 +246,10 @@ function Home() {
         </Card>
         <Card className="w-full flex-1">
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Eventos do Mês</CardTitle>
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Eventos do Mês</CardTitle>
+            </div>
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
@@ -267,7 +306,10 @@ function Home() {
       <div className="flex flex-col lg:flex-row gap-4">
         <Card className="w-full flex-1">
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Calendário e Eventos Confirmados</CardTitle>
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-4 w-4" />
+              <CardTitle className="text-sm font-medium">Calendário e Eventos Confirmados</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col lg:flex-row gap-6">
@@ -280,11 +322,22 @@ function Home() {
                   locale={ptBR}
                   modifiers={{
                     hasEvent: (date) => eventDates.has(format(date, 'yyyy-MM-dd')),
+                    pastEvent: (date) => {
+                      const today = new Date();
+                      today.setHours(0, 0, 0, 0);
+                      return date < today && eventDates.has(format(date, 'yyyy-MM-dd'));
+                    }
                   }}
                   modifiersStyles={{
                     hasEvent: {
                       backgroundColor: 'rgb(34 197 94)',
                       color: 'white',
+                      fontWeight: 'bold',
+                      borderRadius: '6px',
+                    },
+                    pastEvent: {
+                      backgroundColor: 'rgb(187 247 208)',
+                      color: 'rgb(21 128 61)',
                       fontWeight: 'bold',
                       borderRadius: '6px',
                     }
@@ -320,10 +373,18 @@ function Home() {
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
                               <span className="truncate max-w-[200px] sm:max-w-none">{event.location.parent ? `${event.location.parent.name} - ${event.location.name}` : event.location.name}</span>
                             </div>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
+                            <div className="flex items-center gap-1">
+                              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-building"><path d="M2 20h20" /><path d="M5 20V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v12" /><path d="M9 20v-4h6v4" /></svg>
+                              <span className="truncate max-w-[150px] sm:max-w-none">{event.contractor.companyName}</span>
+                            </div>
+                            <span>•</span>
                             <div className="flex items-center gap-1">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                               <span className="truncate max-w-[150px] sm:max-w-none">{event.contractor.name}</span>
                             </div>
+                            <span>•</span>
                             <div className="flex items-center gap-1">
                               <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
                               <a
@@ -360,7 +421,10 @@ function Home() {
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>Meus Rascunhos</CardTitle>
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            <CardTitle>Meus Rascunhos</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           {userDrafts.length > 0 ? (
@@ -388,10 +452,18 @@ function Home() {
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-map-pin"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></svg>
                         <span className="truncate max-w-[200px] sm:max-w-none">{event.location.parent ? `${event.location.parent.name} - ${event.location.name}` : event.location.name}</span>
                       </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
+                      <div className="flex items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-building"><path d="M2 20h20" /><path d="M5 20V8a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v12" /><path d="M9 20v-4h6v4" /></svg>
+                        <span className="truncate max-w-[150px] sm:max-w-none">{event.contractor.companyName}</span>
+                      </div>
+                      <span>•</span>
                       <div className="flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-user"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
                         <span className="truncate max-w-[150px] sm:max-w-none">{event.contractor.name}</span>
                       </div>
+                      <span>•</span>
                       <div className="flex items-center gap-1">
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-phone"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" /></svg>
                         <a

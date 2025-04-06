@@ -1,6 +1,7 @@
 import Elysia from "elysia"
 import { prisma } from "@/lib/prisma"
 import { EventStatus } from "@prisma/client"
+import { startOfDay, endOfDay } from "date-fns"
 
 const app = new Elysia({ prefix: '/event' })
   .get('/', async ({ query }) => {
@@ -10,8 +11,8 @@ const app = new Elysia({ prefix: '/event' })
       ...(status && { status: status as EventStatus }),
       ...(startDate && {
         date: {
-          gte: new Date(startDate as string),
-          ...(endDate && { lte: new Date(endDate as string) }),
+          gte: startOfDay(new Date(startDate as string)),
+          ...(endDate && { lte: endOfDay(new Date(endDate as string)) }),
         },
       }),
       ...(contractorId && { contractorId: contractorId as string }),

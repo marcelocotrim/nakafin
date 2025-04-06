@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import {
   Table,
   TableBody,
@@ -23,8 +23,7 @@ import {
   SortingState,
 } from '@tanstack/react-table';
 import { useState } from 'react';
-import { Input } from '@/components/ui/input';
-import { ArrowUpDown, MoreHorizontal, Home, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowUpDown, MoreHorizontal, Home, Calendar as CalendarIcon, Filter, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -34,8 +33,6 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { generateServiceOrder } from '@/lib/utils'
 import { toast } from 'sonner';
-import { addEventToGoogleCalendar } from '@/lib/google-calendar';
-import { useGoogleLogin } from '@react-oauth/google';
 import { useRouter } from 'next/navigation';
 import {
   Breadcrumb,
@@ -54,8 +51,23 @@ import {
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
-async function getEvents(filters?: { startDate?: Date; endDate?: Date; search?: string }): Promise<EventWithRelations[]> {
+async function getEvents(filters?: { startDate?: Date; endDate?: Date }): Promise<EventWithRelations[]> {
   const searchParams = new URLSearchParams();
 
   if (filters?.startDate) {
@@ -63,9 +75,6 @@ async function getEvents(filters?: { startDate?: Date; endDate?: Date; search?: 
   }
   if (filters?.endDate) {
     searchParams.append('endDate', filters.endDate.toISOString());
-  }
-  if (filters?.search) {
-    searchParams.append('search', filters.search);
   }
 
   const queryString = searchParams.toString();
@@ -80,33 +89,100 @@ async function getEvents(filters?: { startDate?: Date; endDate?: Date; search?: 
 
 export default function EventsPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [globalFilter, setGlobalFilter] = useState('');
-  const [eventToAdd, setEventToAdd] = useState<EventWithRelations | null>(null);
+  const [eventToCancel, setEventToCancel] = useState<EventWithRelations | null>(null);
+  const [eventToUncancel, setEventToUncancel] = useState<EventWithRelations | null>(null);
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const router = useRouter();
 
-  const login = useGoogleLogin({
-    scope: 'https://www.googleapis.com/auth/calendar',
-    flow: 'implicit',
-    onSuccess: async (tokenResponse) => {
-      try {
-        await addEventToGoogleCalendar(eventToAdd!, tokenResponse.access_token);
-        toast.success('Evento adicionado ao Google Calendar com sucesso!');
-        setEventToAdd(null)
-      } catch (error) {
-        console.error('Error adding to Google Calendar:', error);
-        toast.error('Erro ao adicionar evento ao Google Calendar');
+  const cancelEventMutation = useMutation({
+    mutationFn: async (event: EventWithRelations) => {
+      const response = await fetch(`/api/event/${event.id}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: 'CANCELLED',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to cancel event');
       }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('Evento cancelado com sucesso!');
+      refetch();
+    },
+    onError: (error) => {
+      console.error('Error canceling event:', error);
+      toast.error('Erro ao cancelar evento');
+    },
+  });
+
+  const confirmEventMutation = useMutation({
+    mutationFn: async (event: EventWithRelations) => {
+      const response = await fetch(`/api/event/${event.id}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: 'CONFIRMED',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to confirm event');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      refetch();
+    },
+    onError: (error) => {
+      console.error('Error confirming event:', error);
+      toast.error('Erro ao confirmar evento');
+    },
+  });
+
+  const uncancelEventMutation = useMutation({
+    mutationFn: async (event: EventWithRelations) => {
+      const response = await fetch(`/api/event/${event.id}/status`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: 'PUBLISHED',
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to uncancel event');
+      }
+
+      return response.json();
+    },
+    onSuccess: () => {
+      toast.success('Cancelamento desfeito com sucesso!');
+      refetch();
+    },
+    onError: (error) => {
+      console.error('Error uncanceling event:', error);
+      toast.error('Erro ao desfazer cancelamento');
     },
   });
 
   const { data: events, isLoading, refetch } = useQuery({
-    queryKey: ['events', startDate, endDate, globalFilter],
+    queryKey: ['events', startDate, endDate],
     queryFn: () => getEvents({
       startDate: startDate,
       endDate: endDate,
-      search: globalFilter || undefined
     }),
   });
 
@@ -120,25 +196,26 @@ export default function EventsPage() {
   const handleClearFilters = () => {
     setStartDate(undefined);
     setEndDate(undefined);
-    setGlobalFilter('');
     refetch();
   };
 
   // Function to get status badge variant and translated text
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string, date: Date | string) => {
     // Convert status to uppercase for case-insensitive comparison
     const statusUpper = status.toUpperCase();
+    const isPastEvent = new Date(date) < new Date();
 
     switch (statusUpper) {
       case 'PENDING':
         return {
-          variant: 'outline' as const,
+          variant: 'secondary' as const,
           text: 'Pendente'
         };
       case 'CONFIRMED':
         return {
           variant: 'default' as const,
-          text: 'Confirmado'
+          text: 'Confirmado',
+          className: 'bg-green-600 text-white border-green-600'
         };
       case 'CANCELLED':
         return {
@@ -147,7 +224,7 @@ export default function EventsPage() {
         };
       case 'COMPLETED':
         return {
-          variant: 'secondary' as const,
+          variant: 'default' as const,
           text: 'Concluído'
         };
       case 'DRAFT':
@@ -155,11 +232,41 @@ export default function EventsPage() {
           variant: 'outline' as const,
           text: 'Rascunho'
         };
+      case 'PUBLISHED':
+        if (isPastEvent) {
+          return {
+            variant: 'outline' as const,
+            text: 'Encerrado',
+            className: 'bg-gray-100 text-gray-600 border-gray-300'
+          };
+        }
+        return {
+          variant: 'default' as const,
+          text: 'Publicado'
+        };
       default:
         return {
           variant: 'outline' as const,
           text: status
         };
+    }
+  };
+
+  const handleCancelEvent = async (event: EventWithRelations) => {
+    try {
+      await cancelEventMutation.mutateAsync(event);
+      setEventToCancel(null);
+    } catch (error) {
+      console.error('Error canceling event:', error);
+    }
+  };
+
+  const handleUncancelEvent = async (event: EventWithRelations) => {
+    try {
+      await uncancelEventMutation.mutateAsync(event);
+      setEventToUncancel(null);
+    } catch (error) {
+      console.error('Error uncanceling event:', error);
     }
   };
 
@@ -186,8 +293,8 @@ export default function EventsPage() {
       ),
       cell: ({ row }) => {
         const status = row.original.status;
-        const { variant, text } = getStatusBadge(status);
-        return <Badge variant={variant}>{text}</Badge>;
+        const { variant, text, className } = getStatusBadge(status, row.original.date);
+        return <Badge variant={variant} className={className}>{text}</Badge>;
       },
     },
     {
@@ -247,44 +354,82 @@ export default function EventsPage() {
       cell: ({ row }) => {
         return (
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="h-8 w-8 p-0"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <span className="sr-only">Abrir menu</span>
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      className="h-8 w-8 p-0"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="sr-only">Abrir menu</span>
+                      <MoreHorizontal className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="left">
+                  <p>Ações disponíveis</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={async (e) => {
-                e.stopPropagation();
-                try {
-                  // Fetch the template file
-                  const response = await fetch('/templates/ordem-servico.docx')
-                  if (!response.ok) {
-                    throw new Error('Template não encontrado')
-                  }
-                  const blob = await response.blob()
-                  const templateFile = new File([blob], 'ordem-servico.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
+              <div className="px-2 py-1.5 text-sm font-semibold text-muted-foreground">
+                Ações
+              </div>
+              <div className="h-px bg-border my-1" />
+              {row.original.status !== 'CANCELLED' && (
+                <DropdownMenuItem onClick={async (e) => {
+                  e.stopPropagation();
+                  try {
+                    // Fetch the template file
+                    const response = await fetch('/templates/ordem-servico.docx')
+                    if (!response.ok) {
+                      throw new Error('Template não encontrado')
+                    }
+                    const blob = await response.blob()
+                    const templateFile = new File([blob], 'ordem-servico.docx', { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' })
 
-                  // Generate the service order
-                  await generateServiceOrder(templateFile, row.original)
-                } catch (error) {
-                  console.error('Error generating service order:', error)
-                  toast.error('Erro ao gerar ordem de serviço')
-                }
-              }}>
-                Gerar Ordem
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={(e) => {
-                e.stopPropagation();
-                setEventToAdd(row.original);
-                login();
-              }}>
-                Adicionar ao Google Calendar
-              </DropdownMenuItem>
+                    // Generate the service order
+                    await generateServiceOrder(templateFile, row.original)
+
+                    // Automatically confirm the event after generating the OS
+                    if (row.original.status === 'PUBLISHED') {
+                      await confirmEventMutation.mutateAsync(row.original);
+                      toast.success('OS gerada e evento confirmado com sucesso!');
+                    } else {
+                      toast.success('OS gerada com sucesso!');
+                    }
+                  } catch (error) {
+                    console.error('Error generating service order:', error)
+                    toast.error('Erro ao gerar ordem de serviço')
+                  }
+                }}>
+                  Gerar OS
+                </DropdownMenuItem>
+              )}
+              {new Date(row.original.date) > new Date() && row.original.status !== 'CANCELLED' && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEventToCancel(row.original);
+                  }}
+                  className="text-destructive"
+                >
+                  Cancelar Evento
+                </DropdownMenuItem>
+              )}
+              {row.original.status === 'CANCELLED' && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEventToUncancel(row.original);
+                  }}
+                  className="text-green-600"
+                >
+                  Desfazer Cancelamento
+                </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         );
@@ -299,10 +444,8 @@ export default function EventsPage() {
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
     state: {
       sorting,
-      globalFilter,
     },
   });
 
@@ -324,7 +467,10 @@ export default function EventsPage() {
           </Breadcrumb>
 
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Eventos</h1>
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" />
+              <h1 className="text-2xl font-bold">Eventos</h1>
+            </div>
             <div className="flex items-center gap-4">
               <Skeleton className="h-10 w-[200px]" />
               <Skeleton className="h-10 w-[120px]" />
@@ -420,15 +566,13 @@ export default function EventsPage() {
           </Breadcrumb>
 
           <div className="flex justify-between items-center">
-            <h1 className="text-2xl font-bold">Eventos</h1>
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="h-5 w-5" />
+              <h1 className="text-2xl font-bold">Eventos</h1>
+            </div>
             <div className="flex items-center gap-4">
-              <Input
-                placeholder="Buscar..."
-                value={globalFilter ?? ''}
-                onChange={(event) => setGlobalFilter(String(event.target.value))}
-                className="max-w-sm"
-              />
               <Button onClick={() => window.location.href = '/events/new'}>
+                <Plus className="h-4 w-4 mr-2" />
                 Criar Evento
               </Button>
             </div>
@@ -438,11 +582,14 @@ export default function EventsPage() {
         {/* Filters Card */}
         <Card>
           <CardHeader>
-            <CardTitle>Filtros</CardTitle>
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4" />
+              <CardTitle>Filtros</CardTitle>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col gap-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <label className="text-sm font-medium">Data Inicial</label>
                   <Popover>
@@ -503,16 +650,6 @@ export default function EventsPage() {
                       />
                     </PopoverContent>
                   </Popover>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Buscar</label>
-                  <Input
-                    placeholder="Buscar..."
-                    value={globalFilter ?? ''}
-                    onChange={(event) => setGlobalFilter(String(event.target.value))}
-                    className="w-full"
-                  />
                 </div>
               </div>
 
@@ -592,6 +729,62 @@ export default function EventsPage() {
           </div>
         </div>
       </div>
+
+      <AlertDialog open={!!eventToCancel} onOpenChange={() => setEventToCancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancelar Evento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja cancelar este evento? Esta ação não pode ser desfeita.
+              {eventToCancel && (
+                <div className="mt-2">
+                  <p><strong>Evento:</strong> {eventToCancel.title || 'Sem título'}</p>
+                  <p><strong>Data:</strong> {format(new Date(eventToCancel.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+                  <p><strong>Local:</strong> {eventToCancel.location?.name}</p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não, manter evento</AlertDialogCancel>
+            <Button
+              onClick={() => eventToCancel && handleCancelEvent(eventToCancel)}
+              variant="outline"
+              className="border-destructive text-destructive hover:bg-destructive/10"
+            >
+              Sim, cancelar evento
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={!!eventToUncancel} onOpenChange={() => setEventToUncancel(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Desfazer Cancelamento</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tem certeza que deseja desfazer o cancelamento deste evento?
+              {eventToUncancel && (
+                <div className="mt-2">
+                  <p><strong>Evento:</strong> {eventToUncancel.title || 'Sem título'}</p>
+                  <p><strong>Data:</strong> {format(new Date(eventToUncancel.date), "dd/MM/yyyy HH:mm", { locale: ptBR })}</p>
+                  <p><strong>Local:</strong> {eventToUncancel.location?.name}</p>
+                </div>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Não, manter cancelado</AlertDialogCancel>
+            <Button
+              onClick={() => eventToUncancel && handleUncancelEvent(eventToUncancel)}
+              variant="outline"
+              className="border-green-600 text-green-600 hover:bg-green-600/10"
+            >
+              Sim, desfazer cancelamento
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

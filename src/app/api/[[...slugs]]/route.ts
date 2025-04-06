@@ -1,6 +1,5 @@
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
-import createEvent from '@/api/create-event';
 import createPerson from '@/api/create-person';
 import listEvents from '@/api/list-events';
 import listLocations from '@/api/list-locations';
@@ -8,7 +7,7 @@ import listPersons from '@/api/list-persons';
 import getEvent from '@/api/get-event';
 import updateEvent from '@/api/update-event';
 import betterAuth from '@/api/middleware';
-
+import updateEventStatus from '@/api/update-event-status';
 const app = new Elysia({ prefix: '/api' })
 .use(
   cors({
@@ -18,14 +17,14 @@ const app = new Elysia({ prefix: '/api' })
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 )
-.use(betterAuth)
-  .use(createEvent)
+  .use(betterAuth)
   .use(createPerson)
   .use(listEvents)
   .use(listLocations)
   .use(listPersons)
   .use(getEvent)
   .use(updateEvent)
+  .use(updateEventStatus)
 
 export type App = typeof app;
 

@@ -55,6 +55,7 @@ enum EventStatus {
   DRAFT
   PUBLISHED
   CANCELLED
+  CONFIRMED
 }
 
 model Event {
@@ -72,15 +73,16 @@ model Event {
   discount                       Float?
   totalWithServiceFeeAndDiscount Float?
   date                           DateTime
-  locationId                     String?
-  location                       Location?   @relation(fields: [locationId], references: [id])
+  locationId                     String
+  location                       Location    @relation(fields: [locationId], references: [id])
   participantsQuantity           Int?
-  contractor                     Person?     @relation(fields: [contractorId], references: [id])
-  contractorId                   String?
-  menu                           Json?
-  userId                         String?
-  user                           User?       @relation(fields: [userId], references: [id])
+  contractor                     Person      @relation(fields: [contractorId], references: [id])
+  contractorId                   String
+  menu                           Menu?
+  userId                         String
+  user                           User        @relation(fields: [userId], references: [id])
 
+  @@index([locationId, date])
   @@map("event")
 }
 

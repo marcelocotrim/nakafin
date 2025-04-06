@@ -323,7 +323,7 @@ async function generateServiceOrder(templateFile: File, event: EventWithRelation
       os,
       evento: event.title || "-",
       pax: event.participantsQuantity?.toString() || "-",
-      contratante: event.location.parent?.name || event.location.name,
+      contratante: event.contractor.companyName || "-",
       data: eventDate,
       horario: eventTime,
       operacao: `Restaurante ${event.location.parent?.name || event.location.name}, ${event.location.name}`,
