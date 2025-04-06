@@ -66,8 +66,15 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-async function getEvents(filters?: { startDate?: Date; endDate?: Date }): Promise<EventWithRelations[]> {
+async function getEvents(filters?: { startDate?: Date; endDate?: Date; status?: string }): Promise<EventWithRelations[]> {
   const searchParams = new URLSearchParams();
 
   if (filters?.startDate) {
@@ -75,6 +82,9 @@ async function getEvents(filters?: { startDate?: Date; endDate?: Date }): Promis
   }
   if (filters?.endDate) {
     searchParams.append('endDate', filters.endDate.toISOString());
+  }
+  if (filters?.status) {
+    searchParams.append('status', filters.status);
   }
 
   const queryString = searchParams.toString();
@@ -91,8 +101,9 @@ export default function EventsPage() {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [eventToCancel, setEventToCancel] = useState<EventWithRelations | null>(null);
   const [eventToUncancel, setEventToUncancel] = useState<EventWithRelations | null>(null);
-  const [startDate, setStartDate] = useState<Date | undefined>(undefined);
+  const [startDate, setStartDate] = useState<Date | undefined>(new Date());
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
+  const [status, setStatus] = useState<string | undefined>(undefined);
   const router = useRouter();
 
   const cancelEventMutation = useMutation({
@@ -179,10 +190,11 @@ export default function EventsPage() {
   });
 
   const { data: events, isLoading, refetch } = useQuery({
-    queryKey: ['events', startDate, endDate],
+    queryKey: ['events', startDate, endDate, status],
     queryFn: () => getEvents({
       startDate: startDate,
       endDate: endDate,
+      status: status,
     }),
   });
 
@@ -196,6 +208,7 @@ export default function EventsPage() {
   const handleClearFilters = () => {
     setStartDate(undefined);
     setEndDate(undefined);
+    setStatus(undefined);
     refetch();
   };
 
@@ -651,6 +664,25 @@ export default function EventsPage() {
                     </PopoverContent>
                   </Popover>
                 </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <Select
+                  value={status || "all"}
+                  onValueChange={(value) => setStatus(value === "all" ? undefined : value)}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Todos os status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="CONFIRMED">Confirmado</SelectItem>
+                    <SelectItem value="CANCELLED">Cancelado</SelectItem>
+                    <SelectItem value="DRAFT">Rascunho</SelectItem>
+                    <SelectItem value="PUBLISHED">Publicado</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex justify-end gap-4">
