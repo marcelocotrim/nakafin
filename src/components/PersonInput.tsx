@@ -59,9 +59,10 @@ type PersonFormValues = z.infer<typeof personSchema>;
 interface PersonInputProps {
   value: string;
   onChange: (value: string, id?: string) => void;
+  disabled?: boolean;
 }
 
-export function PersonInput({ value, onChange }: PersonInputProps) {
+export function PersonInput({ value, onChange, disabled = false }: PersonInputProps) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -131,6 +132,7 @@ export function PersonInput({ value, onChange }: PersonInputProps) {
               role="combobox"
               aria-expanded={open}
               className="w-full justify-between"
+              disabled={disabled}
             >
               {value || "Selecione uma pessoa..."}
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
@@ -171,7 +173,7 @@ export function PersonInput({ value, onChange }: PersonInputProps) {
       </div>
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
-          <Button type="button" variant="outline" size="icon">
+          <Button type="button" variant="outline" size="icon" disabled={disabled}>
             <Plus className="h-4 w-4" />
           </Button>
         </DialogTrigger>

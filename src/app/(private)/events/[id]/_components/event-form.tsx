@@ -128,6 +128,9 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
   const [userSearch, setUserSearch] = useState('')
   const [menu, setMenu] = useState<Menu | null>(event?.menu || null)
 
+  // Check if the event is in the past
+  const isPastEvent = event?.date ? new Date(event.date) < new Date() : false;
+
   const { data: operations } = useQuery<Location[]>({
     queryKey: ["operations"],
     queryFn: async () => {
@@ -375,12 +378,13 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
         className="hidden"
         id="cardapio-upload"
         onChange={handleFileUpload}
+        disabled={isPastEvent}
       />
       <Form {...form}>
         <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
           <div className="flex justify-between items-center">
             <h2 className="text-lg font-semibold">Detalhes do Evento</h2>
-            {menu && (
+            {menu && !isPastEvent && (
               <Button
                 variant="outline"
                 onClick={() => {
@@ -391,6 +395,12 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
               </Button>
             )}
           </div>
+
+          {isPastEvent && (
+            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-3 rounded-md mb-4">
+              <p className="text-sm">Este evento já ocorreu e não pode ser editado.</p>
+            </div>
+          )}
 
           <FormField
             control={form.control}
@@ -406,6 +416,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                         role="combobox"
                         aria-expanded={userOpen}
                         className="w-full justify-between"
+                        disabled={isPastEvent}
                       >
                         {field.value
                           ? sortedUsers.find((user) => user.id === field.value)?.name
@@ -466,7 +477,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
               <FormItem>
                 <FormLabel>Título do Evento</FormLabel>
                 <FormControl>
-                  <Input placeholder="Digite o título do evento" {...field} />
+                  <Input placeholder="Digite o título do evento" {...field} disabled={isPastEvent} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -482,8 +493,9 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                 <FormControl>
                   <Textarea
                     placeholder="Digite uma observação para o evento (opcional)"
-                    className="min-h-[100px] resize-none"
+                    className="min-h-[100px] resize-none text-sm"
                     {...field}
+                    disabled={isPastEvent}
                   />
                 </FormControl>
                 <FormMessage />
@@ -507,6 +519,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                             "w-full pl-3 text-left font-normal",
                             !field.value && "text-muted-foreground"
                           )}
+                          disabled={isPastEvent}
                         >
                           {field.value ? (
                             format(field.value, "PPP 'às' HH:mm", { locale: ptBR })
@@ -529,6 +542,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                               newDate.setHours(parseInt(hours), parseInt(minutes))
                               field.onChange(newDate)
                             }}
+                            disabled={isPastEvent}
                           >
                             <SelectTrigger className="w-full">
                               <SelectValue placeholder="Selecione o horário" />
@@ -587,6 +601,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                     form.setValue('locationId', '', { shouldValidate: true });
                   }}
                   value={field.value}
+                  disabled={isPastEvent}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -615,7 +630,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                 <Select
                   onValueChange={field.onChange}
                   value={field.value}
-                  disabled={!selectedOperation?.children?.length}
+                  disabled={!selectedOperation?.children?.length || isPastEvent}
                 >
                   <FormControl>
                     <SelectTrigger>
@@ -656,6 +671,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                       });
                       form.setValue("contractorName", value || "");
                     }}
+                    disabled={isPastEvent}
                   />
                 </FormControl>
                 <FormMessage />
@@ -678,6 +694,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                       const value = e.target.value === '' ? 0 : Number(e.target.value);
                       field.onChange(value);
                     }}
+                    disabled={isPastEvent}
                   />
                 </FormControl>
                 <FormMessage />
@@ -702,7 +719,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                     }
                   }}
                   value={field.value.toString()}
-                  disabled={!menu?.priceWithAlcohol && !menu?.priceWithoutAlcohol}
+                  disabled={!menu?.priceWithAlcohol && !menu?.priceWithoutAlcohol || isPastEvent}
                 >
                   <FormControl>
                     <SelectTrigger className="w-full">
@@ -755,6 +772,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                     });
                     toast.success('Cardápio removido com sucesso!');
                   }}
+                  disabled={isPastEvent}
                 >
                   Remover Cardápio
                 </Button>
@@ -762,6 +780,7 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
                 <Button
                   variant="outline"
                   onClick={handleUploadButtonClick}
+                  disabled={isPastEvent}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   Upload Cardápio
@@ -778,25 +797,27 @@ const EventForm = ({ onUpload, event }: EventFormProps) => {
             )}
           </div>
 
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              className="flex-1"
-              disabled={createEventMutation.isPending}
-              onClick={handleDraftSubmit}
-            >
-              {createEventMutation.isPending ? "Salvando..." : "Salvar como Rascunho"}
-            </Button>
-            <Button
-              type="button"
-              className="flex-1"
-              disabled={createEventMutation.isPending}
-              onClick={handlePublishSubmit}
-            >
-              {createEventMutation.isPending ? "Criando..." : "Publicar Evento"}
-            </Button>
-          </div>
+          {!isPastEvent && (
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                disabled={createEventMutation.isPending}
+                onClick={handleDraftSubmit}
+              >
+                {createEventMutation.isPending ? "Salvando..." : "Salvar como Rascunho"}
+              </Button>
+              <Button
+                type="button"
+                className="flex-1"
+                disabled={createEventMutation.isPending}
+                onClick={handlePublishSubmit}
+              >
+                {createEventMutation.isPending ? "Criando..." : "Publicar Evento"}
+              </Button>
+            </div>
+          )}
         </form>
       </Form>
     </>
